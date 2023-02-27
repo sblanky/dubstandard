@@ -34,11 +34,11 @@ import pygaps.parsing as pgp
 from dubstandard.dubinin import analyseDR
 
 file = '/path/to/file.aif'
-isotherm = pgp.isotherm_from_aif(
-		isotherm,
-		**{} # filter parameters can be changed here.
-		)
-analyseDR(isotherm)
+isotherm = pgp.isotherm_from_aif(isotherm)
+analyseDR(
+	isotherm,
+	**{} # filter parameters can be changed here.
+)
 
 ```
 

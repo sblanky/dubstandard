@@ -34,7 +34,10 @@ import pygaps.parsing as pgp
 from dubstandard.dubinin import analyseDR
 
 file = '/path/to/file.aif'
-isotherm = pgp.isotherm_from_aif(isotherm)
+isotherm = pgp.isotherm_from_aif(
+		isotherm,
+		**{} # filter parameters can be changed here.
+		)
 analyseDR(isotherm)
 
 ```
@@ -44,4 +47,4 @@ Currently the easiest way to run the program is to start with an isotherm in `.a
 
 # Testing on example isotherm set
 
-Only a few isotherms successfully generted a Dubinin pore volume.
+Only a few isotherms successfully generated a Dubinin pore volume. It is possible that results could be attained by increasing bounds of exponent.

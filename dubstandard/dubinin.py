@@ -8,6 +8,7 @@ import os
 
 import pygaps.parsing as pgp
 import pygaps.characterisation as pgc
+import pygaps.graphing.calc_graphs as pgraph
 from pygaps.utilities.exceptions import CalculationError
 
 
@@ -120,7 +121,8 @@ class DubininResult:
                         _,
                         slope,
                         intercept,
-                        _, _,
+                        min_p_index,
+                        max_p_index,
                         corr_coef,
                     ) = pgc.dr_da_plots.da_plot_raw(
                         self.pressure,
@@ -138,7 +140,9 @@ class DubininResult:
                         'potential': potential,
                         'slope': slope,
                         'intercept': intercept,
-                        'corr_coef': corr_coef
+                        'corr_coef': corr_coef,
+                        'min_p_index': min_p_index,
+                        'max_p_index': max_p_index,
                     }
 
                 except CalculationError:
@@ -209,6 +213,12 @@ class DubininFilteredResults:
             lambda x: abs(x) < min_corr_coef
         )
 
+        if len(self.result) == 0:
+            raise ValueError(
+                'No valid results with applied filters'
+            )
+            return
+
         self._stats()
 
         optimum = 1e10
@@ -257,7 +267,11 @@ class DubininFilteredResults:
         self.mean = np.mean(volumes)
         self.stddev = np.std(volumes)
 
-    def export(self, filepath):
+    def export(
+        self,
+        filepath,
+        verbose=False,
+    ):
         """
         Exports filtered results to csv
         TODO:   Export optimum result
@@ -271,6 +285,26 @@ class DubininFilteredResults:
             f'{filepath}filtered_results.csv',
             index=False
         )
+        fig, ax = plt.subplots(1, 1)
+        pgraph.dra_plot(
+            logv=self.log_v,
+            log_n_p0p=self.log_p_exp,
+            minimum=self.optimum['min_p_index'],
+            maximum=self.optimum['max_p_index'],
+            slope=self.optimum['slope'],
+            intercept=self.optimum['intercept'],
+            exp=self.exp,
+            ax=ax,
+        )
+
+        ax.legend(
+            title=f'exp: {self.exp:.2f}'
+        )
+
+        if verbose:
+            plt.show()
+
+        fig.savefig(f'{filepath}optimum.png')
 
 
 def analyseDR(
@@ -294,20 +328,14 @@ def analyseDR(
         result,
         **kwargs
     )
-    filtered.export(output_subdir)
 
-    if verbose:
-        plt.scatter(
-            filtered.log_p_exp,
-            filtered.log_v,
-            fc='white', ec='k',
-        )
-        x = np.linspace(
-            filtered.log_p_exp[0],
-            filtered.log_p_exp[-1])
-        y = filtered.optimum['slope'] * x + filtered.optimum['intercept']
-        plt.plot(x, y)
-        plt.show()
+    if verbose and if len(filtered.result) != 0:
+        print(filtered.optimum)
+
+    filtered.export(
+        output_subdir,
+        verbose=verbose
+    )
 
 
 if __name__ == "__main__":

@@ -260,7 +260,7 @@ class DubininFilteredResults:
         if optimum_criteria == 'max_corr_coef':
             optimum = 0
             for r in self.result:
-                if self.result[r]['corr_coef'] > optimum:
+                if abs(self.result[r]['corr_coef']) > optimum:
                     optimum = self.result[r]['corr_coef']
                     self.optimum = self.result[r]
 
@@ -378,14 +378,15 @@ def analyseDR(
     )
     filtered = DubininFilteredResults(
         result,
-        optimum_criteria,
+        optimum_criteria=optimum_criteria,
         **kwargs
     )
 
-    filtered.export(
-        output_subdir,
-        verbose=verbose
-    )
+    if len(filtered.result) != 0:
+        filtered.export(
+            output_subdir,
+            verbose=verbose
+        )
 
 
 if __name__ == "__main__":

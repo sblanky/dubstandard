@@ -14,8 +14,10 @@ for f in glob.glob(f'{path}*.aif'):
         try:
             analyseDR(
                 isotherm,
+                optimum_criteria='max_corr_coef',
                 output_dir=output_dir,
                 exp=exp,
+                verbose=True,
             )
         except ValueError as e:
             print(isotherm.material)

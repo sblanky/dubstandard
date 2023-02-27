@@ -188,7 +188,7 @@ class DubininFilteredResults:
             lambda x: x[0] < p_limits[0] or x[1] > p_limits[1]
         )
 
-        curvature_limit = kwargs.get('curvature_limit', 0.1)
+        curvature_limit = kwargs.get('curvature_limit', 0.05)
         self._filter(
             'curvature',
             lambda x: abs(x) > curvature_limit

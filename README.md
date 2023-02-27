@@ -13,7 +13,7 @@ Attempts to determine optimum Dubinin (Astakhov or Radushkevich) volume from an 
 | 'p_limits'         | [0, 0.1]              | pressure range of isotherm to select 	|
 | 'max_capacity'     | (total pore capacity)         | maximm isotherm loading in liquid volume |
 | 'min_points'      | 10            | minimum number of points in selected region 	|	
-| 'corr_coef'        | 0.999         | minimum correlation coefficient of linear regression |
+| 'corr_coef'        | 0.9         | minimum correlation coefficient of linear regression |
 
 
 4. The fitting range with the lowest pore volume is selected as the optimum.

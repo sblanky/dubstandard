@@ -5,14 +5,15 @@ Attempts to determine optimum Dubinin (Astakhov or Radushkevich) volume from an 
 1. The Dubinin transform is performed on the isotherm. Exponent can be specified or automatically optimised. 
 2. Transformed isotherm sliced into pieces. Dubinin pore volume and related parameters calculated from each slice.
 3. The dictionary of results is filtered; automatic filter parameters;
-   | Parameter  | Value         |
-   | ---------------- | ---------------- |
-   | 'bounds'   | [1, 3]                |
-   | 'curvature_limit'  | 1             |
-   | 'p_limits'         | [0, 0.1]              |
-   | 'max_capacity'     | (total pore capacity)         |
-   | 'point_count'      | 10            |
-   | 'corr_coef'        | 0.999         |
+
+| Parameter  | Value         |
+| ---------------- | ---------------- |
+| 'bounds'   | [1, 3]                |
+| 'curvature_limit'  | 1             |
+| 'p_limits'         | [0, 0.1]              |
+| 'max_capacity'     | (total pore capacity)         |
+| 'point_count'      | 10            |
+| 'corr_coef'        | 0.999         |
 
 # Installation
 

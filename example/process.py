@@ -17,12 +17,6 @@ for f in glob.glob(f'{path}*.aif'):
                 output_dir=output_dir,
                 verbose=True,
                 exp=exp,
-                **{
-                    'min_corr_coef': 0.9,
-                    'curvature': 10,
-                    'min_points': 5,
-                    'bounds': [1, 3],
-                }
             )
         except ValueError as e:
             print(isotherm.material)

@@ -5,6 +5,8 @@ import numpy as np
 from collections import OrderedDict
 import pandas as pd
 import os
+from pprint import pprint
+from pathlib import Path
 
 import pygaps.parsing as pgp
 import pygaps.characterisation as pgc
@@ -175,6 +177,7 @@ class DubininFilteredResults:
     def __init__(
         self,
         dubinin_result,
+        optimum_criteria: str = 'max_points',
         **kwargs,
     ):
         self.__dict__.update(dubinin_result.__dict__)
@@ -221,11 +224,46 @@ class DubininFilteredResults:
 
         self._stats()
 
-        optimum = 1e10
-        for r in self.result:
-            if self.result[r]['microp_volume'] < optimum:
-                optimum = self.result[r]['microp_volume']
-                self.optimum = self.result[r]
+        self._optimum(optimum_criteria)
+
+    def _optimum(
+        self,
+        optimum_criteria,
+    ):
+
+        if optimum_criteria not in [
+            'min_volume',
+            'max_points',
+            'max_corr_coef'
+        ]:
+            raise ValueError(
+                f'{optimum_criteria} is invalid selection '
+                f'criterion for selection of optimum Dubinin '
+                f'volume.'
+            )
+
+        if optimum_criteria == 'min_volume':
+            optimum = 1e10
+            for r in self.result:
+                if self.result[r]['microp_volume'] < optimum:
+                    optimum = self.result[r]['microp_volume']
+                    self.optimum = self.result[r]
+
+        if optimum_criteria == 'max_points':
+            optimum = 0
+            for r in self.result:
+                if self.result[r]['point_count'] > optimum:
+                    optimum = self.result[r]['point_count']
+                    self.optimum = self.result[r]
+
+        if optimum_criteria == 'max_corr_coef':
+            optimum = 0
+            for r in self.result:
+                if self.result[r]['corr_coef'] > optimum:
+                    optimum = self.result[r]['corr_coef']
+                    self.optimum = self.result[r]
+
+        self.optimum_criteria = optimum_criteria
 
     def _filter(
         self,
@@ -273,18 +311,34 @@ class DubininFilteredResults:
         verbose=False,
     ):
         """
-        Exports filtered results to csv
-        TODO:   Export optimum result
-                Export filter_params
-                Export graphs
+        Exports summary of results
         """
         if not os.path.exists(filepath):
             os.makedirs(filepath)
+
+        with (Path(f'{filepath}filter_summary.json')).open('w') as fp:
+            pprint(self.filter_params, fp)
+
+        with (Path(f'{filepath}optimum.txt')).open('w') as fp:
+            print(
+                f"Optimum volume selected using {self.optimum_criteria}: \n"
+                f"Pore volume: {self.optimum['microp_volume']}\n"
+                f"Points: {self.optimum['point_count']}\n"
+                f"Potential: {self.optimum['potential']}\n"
+                f"Slope: {self.optimum['slope']}\n"
+                f"Intercept: {self.optimum['intercept']}\n"
+                f"Correlation coefficent: {self.optimum['corr_coef']}\n"
+                f"Exponent: {self.exp}\n"
+                f"Pressure range: "
+                f"{self.optimum['pressure_range'][0]} - "
+                f"{self.optimum['pressure_range'][1]}\n",
+                file=fp)
 
         pd.DataFrame(self.result).transpose().to_csv(
             f'{filepath}filtered_results.csv',
             index=False
         )
+
         fig, ax = plt.subplots(1, 1)
         pgraph.dra_plot(
             logv=self.log_v,
@@ -296,19 +350,18 @@ class DubininFilteredResults:
             exp=self.exp,
             ax=ax,
         )
-
         ax.legend(
             title=f'exp: {self.exp:.2f}'
         )
 
         if verbose:
             plt.show()
-
         fig.savefig(f'{filepath}optimum.png')
 
 
 def analyseDR(
     isotherm,
+    optimum_criteria='max_points',
     output_dir=None,
     verbose=False,
     **kwargs,
@@ -326,11 +379,9 @@ def analyseDR(
     kwargs['curvature_limit'] = 1
     filtered = DubininFilteredResults(
         result,
+        optimum_criteria,
         **kwargs
     )
-
-    if verbose and if len(filtered.result) != 0:
-        print(filtered.optimum)
 
     filtered.export(
         output_subdir,

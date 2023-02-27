@@ -1,4 +1,4 @@
-Optimum volume has: 
+Optimum volume selected using max_points: 
 Pore volume: 0.566328014078854
 Points: 10
 Potential: 11.6580189437859

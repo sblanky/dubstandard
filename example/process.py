@@ -15,7 +15,6 @@ for f in glob.glob(f'{path}*.aif'):
             analyseDR(
                 isotherm,
                 output_dir=output_dir,
-                verbose=True,
                 exp=exp,
             )
         except ValueError as e:

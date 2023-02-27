@@ -1,0 +1,10 @@
+Optimum volume selected using max_points: 
+Pore volume: 0.7400780271270642
+Points: 29
+Potential: 4.595826697209406
+Slope: -0.014332374197207315
+Intercept: 2.679405191600306
+Correlation coefficent: -0.9691516157484155
+Exponent: 2.9999940034309156
+Pressure range: 4.2e-05 - 0.09008362
+

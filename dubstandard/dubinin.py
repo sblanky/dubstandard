@@ -181,7 +181,6 @@ class DubininFilteredResults:
         **kwargs,
     ):
         self.__dict__.update(dubinin_result.__dict__)
-        self.filter_params = kwargs
 
         p_limits = kwargs.get('p_limits', [0, 0.1])
         self._filter(
@@ -210,11 +209,13 @@ class DubininFilteredResults:
             lambda x: x < min_points
         )
 
-        min_corr_coef = kwargs.get('min_corr_coef', 0.999)
+        min_corr_coef = kwargs.get('min_corr_coef', 0.9)
         self._filter(
             'corr_coef',
             lambda x: abs(x) < min_corr_coef
         )
+
+        self.filter_params = kwargs
 
         if len(self.result) == 0:
             raise ValueError(
@@ -375,8 +376,6 @@ def analyseDR(
         isotherm,
         **kwargs,
     )
-    kwargs = {}
-    kwargs['curvature_limit'] = 1
     filtered = DubininFilteredResults(
         result,
         optimum_criteria,

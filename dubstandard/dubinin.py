@@ -36,12 +36,11 @@ class DubininResult:
         exp: float = None,
         **kwargs,
     ):
+        self.material = isotherm.material
         self.adsorbate = isotherm.adsorbate
         self.iso_temp = isotherm.temperature
         self.molar_mass = self.adsorbate.molar_mass()
         self.liquid_density = self.adsorbate.liquid_density(self.iso_temp)
-        gas_density = 1e-3 * (self.molar_mass/22.4)
-        self.density_conversion = gas_density / self.liquid_density
 
         self.pressure = isotherm.pressure(
             branch='ads',
@@ -51,14 +50,19 @@ class DubininResult:
             pressure=list(self.pressure),
             branch='ads',
             pressure_mode='relative',
-            loading_unit='cm3',
-            loading_basis='volume_gas',
+            loading_unit='mol',
+            loading_basis='molar',
             material_unit='g',
             material_basis='mass',
         )
-        self.total_pore_capacity = max(isotherm.loading())
 
-        self.log_v = np.log10(self.loading)
+        self.total_pore_volume = max(self.loading) * self.molar_mass / self.liquid_density
+
+        self.log_v = pgc.dr_da_plots.log_v_adj(
+            self.loading,
+            self.molar_mass,
+            self.liquid_density,
+        )
 
         bounds = kwargs.get('bounds', [1, 3])
 
@@ -100,7 +104,7 @@ class DubininResult:
         try:
             spline = PchipInterpolator(
                 np.flip(self.log_p_exp),
-                np.flip(self.log_v)
+                np.flip(self.log_v),
             )
             second_derivative = spline.derivative(nu=2)
         except ValueError as e:
@@ -118,7 +122,7 @@ class DubininResult:
 
                 try:
                     (
-                        microp_capacity,
+                        microp_volume,
                         potential,
                         _,
                         slope,
@@ -135,9 +139,7 @@ class DubininResult:
                         exp=self.exp,
                         p_limits=pressure_range,
                     )
-                    microp_volume = microp_capacity * self.density_conversion
                     self.result[i, j] = {
-                        'microp_capacity': microp_capacity,
                         'microp_volume': microp_volume,
                         'potential': potential,
                         'slope': slope,
@@ -147,7 +149,11 @@ class DubininResult:
                         'max_p_index': max_p_index,
                     }
 
-                except CalculationError:
+                    self.result[i, j]['point_count'] = j - i
+                    self.result[i, j]['pressure_range'] = pressure_range
+
+                except CalculationError as e:
+                    print(e)
                     continue
 
                 log_p_exp = self.log_p_exp[i:j]
@@ -162,10 +168,8 @@ class DubininResult:
                     self.result[i, j]['curvature'] = abs(relative_change)
                 except ValueError:
                     continue
-
-                self.result[i, j]['point_count'] = j - i
-
-                self.result[i, j]['pressure_range'] = pressure_range
+                except UnboundLocalError:
+                    continue
 
 
 class DubininFilteredResults:
@@ -195,7 +199,7 @@ class DubininFilteredResults:
         )
 
         max_capacity = kwargs.get(
-            'max_capacity', self.total_pore_capacity
+            'max_capacity', self.total_pore_volume
         )
         self._filter(
             'microp_capacity',
@@ -275,11 +279,19 @@ class DubininFilteredResults:
         Remove results based on filter criteria. Criteria given
         in the form of lambda expression.
         """
+        if len(self.result) == 0:
+            print(
+                f'{self.material}:\n'
+                f'Nothing to filter'
+            )
         to_remove = []
         for r in self.result:
-            result = self.result[r]
-            if criteria(result[key]):
-                to_remove.append(r)
+            try:
+                result = self.result[r]
+                if criteria(result[key]):
+                    to_remove.append(r)
+            except KeyError:
+                pass
 
         for r in to_remove:
             del self.result[r]

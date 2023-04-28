@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from scipy.interpolate import PchipInterpolator
-from scipy import optimize, stats
+from scipy import optimize, stats, constants
 import numpy as np
 from collections import OrderedDict
 import pandas as pd
@@ -117,36 +117,33 @@ class DubininResult:
             for j in range(i+3, num_points):
                 self.result[i, j] = {}
                 pressure_range = [
-                    self.pressure[i], self.pressure[j]
+                    self.pressure[i],
+                    self.pressure[j]
                 ]
 
                 try:
                     (
-                        microp_volume,
-                        potential,
-                        _,
                         slope,
                         intercept,
-                        min_p_index,
-                        max_p_index,
                         corr_coef,
-                    ) = pgc.dr_da_plots.da_plot_raw(
-                        self.pressure,
-                        self.loading,
-                        self.iso_temp,
-                        self.molar_mass,
-                        self.liquid_density,
-                        exp=self.exp,
-                        p_limits=pressure_range,
+                        p_val,
+                        stderr,
+                    ) = stats.linregress(
+                        self.log_p_exp[i:j],
+                        self.log_v[i:j]
                     )
+                    microp_volume = 10**intercept
+                    potential = (-np.log(10)**(self.exp - 1) *
+                                (constants.gas_constant * self.iso_temp)**(self.exp) \
+                                 / slope)**(1 / self.exp) / 1000
                     self.result[i, j] = {
                         'microp_volume': microp_volume,
                         'potential': potential,
                         'slope': slope,
                         'intercept': intercept,
                         'corr_coef': corr_coef,
-                        'min_p_index': min_p_index,
-                        'max_p_index': max_p_index,
+                        'min_p_index': i,
+                        'max_p_index': j,
                     }
 
                     self.result[i, j]['point_count'] = j - i
@@ -192,28 +189,27 @@ class DubininFilteredResults:
             lambda x: x[0] < p_limits[0] or x[1] > p_limits[1]
         )
 
-        curvature_limit = kwargs.get('curvature_limit', 0.05)
+        curvature_limit = kwargs.get('curvature_limit', 0.02)
         self._filter(
             'curvature',
             lambda x: abs(x) > curvature_limit
         )
 
-        max_capacity = kwargs.get(
-            'max_capacity', self.total_pore_volume
+        max_volume = kwargs.get(
+            'max_volume', self.total_pore_volume
         )
         self._filter(
-            'microp_capacity',
-            lambda x: x > max_capacity
-
+            'microp_volume',
+            lambda x: x > max_volume
         )
 
-        min_points = kwargs.get('min_points', 10)
+        min_points = kwargs.get('min_points', 5)
         self._filter(
             'point_count',
             lambda x: x < min_points
         )
 
-        min_corr_coef = kwargs.get('min_corr_coef', 0.9)
+        min_corr_coef = kwargs.get('min_corr_coef', 0.95)
         self._filter(
             'corr_coef',
             lambda x: abs(x) < min_corr_coef
@@ -353,6 +349,7 @@ class DubininFilteredResults:
         )
 
         fig, ax = plt.subplots(1, 1)
+        """
         pgraph.dra_plot(
             logv=self.log_v,
             log_n_p0p=self.log_p_exp,
@@ -363,6 +360,33 @@ class DubininFilteredResults:
             exp=self.exp,
             ax=ax,
         )
+        """
+        ax.scatter(
+            self.log_p_exp,
+            self.log_v,
+            label='all data',
+            ec='grey', fc='none',
+            marker='o',
+        )
+
+        idxmin = self.optimum['min_p_index']
+        idxmax = self.optimum['max_p_index']
+        ax.scatter(
+            self.log_p_exp[idxmin:idxmax],
+            self.log_v[idxmin:idxmax],
+            color='r', marker='o',
+            label='fit data',
+        )
+
+
+        x = np.linspace(
+            min(self.log_p_exp),
+            max(self.log_p_exp),
+            100
+        )
+        y = self.optimum['slope'] * x + self.optimum['intercept']
+
+        ax.plot(x, y, label='fit')
         ax.legend(
             title=f'exp: {self.exp:.2f}'
         )
@@ -372,9 +396,10 @@ class DubininFilteredResults:
         fig.savefig(f'{filepath}optimum.png')
 
 
-def analyseDR(
+def analyseDA(
     isotherm,
     optimum_criteria='max_points',
+    exp=None,
     output_dir=None,
     verbose=False,
     **kwargs,
@@ -386,6 +411,7 @@ def analyseDR(
 
     result = DubininResult(
         isotherm,
+        exp=exp,
         **kwargs,
     )
     filtered = DubininFilteredResults(
@@ -394,15 +420,28 @@ def analyseDR(
         **kwargs
     )
 
-    if len(filtered.result) != 0:
-        filtered.export(
-            output_subdir,
-            verbose=verbose
-        )
+    return filtered
+
+
+def analyseDR(
+    isotherm,
+    optimum_criteria='max_points',
+    output_dir=None,
+    verbose=False,
+    **kwargs,
+):
+    analyseDA(
+        isotherm,
+        optimum_criteria=optimum_criteria,
+        exp=2,
+        output_dir=output_dir,
+        verbose=verbose,
+        **kwargs,
+    )
 
 
 if __name__ == "__main__":
-    Path = '/home/pcxtsbl/CodeProjects/labcore_upload/robert/aif/'
+    inPath = '/home/pcxtsbl/CodeProjects/labcore_upload/robert/aif/'
     file = 'ACC2600.aif'
-    isotherm = pgp.isotherm_from_aif(f'{Path}{file}')
-    analyseDR(isotherm, verbose=True)
+    isotherm = pgp.isotherm_from_aif(f'{inPath}{file}')
+    analyseDR(isotherm, verbose=True,) 

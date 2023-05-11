@@ -64,7 +64,6 @@ class DubininResult:
             self.liquid_density,
         )
 
-        bounds = kwargs.get('bounds', [1, 3])
 
         def dr_fit(exp, ret=False):
             slope, intercept, corr_coef, _, stderr = stats.linregress(
@@ -75,6 +74,7 @@ class DubininResult:
             return stderr
 
         if exp is None:
+            bounds = kwargs.get('bounds', [1, 3])
             res = optimize.minimize_scalar(
                 dr_fit,
                 bounds=bounds,
@@ -163,9 +163,10 @@ class DubininResult:
                     x_range = abs(log_p_exp[0]-log_p_exp[-1])
                     relative_change = deriv_change / np.log10(x_range)
                     self.result[i, j]['curvature'] = abs(relative_change)
-                except ValueError:
+                except ValueError as e:
+                    print(e)
                     continue
-                except UnboundLocalError:
+                except UnboundLocalError as e:
                     continue
 
 
@@ -183,45 +184,55 @@ class DubininFilteredResults:
     ):
         self.__dict__.update(dubinin_result.__dict__)
 
-        p_limits = kwargs.get('p_limits', [0, 0.1])
-        self._filter(
-            'pressure_range',
-            lambda x: x[0] < p_limits[0] or x[1] > p_limits[1]
-        )
+        while len(self.result) != 0:
+            p_limits = kwargs.get('p_limits', [0, 0.1])
+            fail_point = 'p_limits'
+            self._filter(
+                'pressure_range',
+                lambda x: x[0] < p_limits[0] or x[1] > p_limits[1]
+            )
 
-        curvature_limit = kwargs.get('curvature_limit', 0.02)
-        self._filter(
-            'curvature',
-            lambda x: abs(x) > curvature_limit
-        )
+            curvature_limit = kwargs.get('curvature_limit', 0.02)
+            fail_point = 'curvature_limit'
+            self._filter(
+                'curvature',
+                lambda x: abs(x) > curvature_limit
+            )
 
-        max_volume = kwargs.get(
-            'max_volume', self.total_pore_volume
-        )
-        self._filter(
-            'microp_volume',
-            lambda x: x > max_volume
-        )
+            max_volume = kwargs.get(
+                'max_volume', self.total_pore_volume
+            )
+            fail_point = 'max_volume'
+            self._filter(
+                'microp_volume',
+                lambda x: x > max_volume
+            )
 
-        min_points = kwargs.get('min_points', 5)
-        self._filter(
-            'point_count',
-            lambda x: x < min_points
-        )
+            min_points = kwargs.get('min_points', 5)
+            fail_point = 'min_points'
+            self._filter(
+                'point_count',
+                lambda x: x < min_points
+            )
 
-        min_corr_coef = kwargs.get('min_corr_coef', 0.95)
-        self._filter(
-            'corr_coef',
-            lambda x: abs(x) < min_corr_coef
-        )
+            min_corr_coef = kwargs.get('min_corr_coef', 0.95)
+            fail_point = 'min_corr_coef'
+            self._filter(
+                'corr_coef',
+                lambda x: abs(x) < min_corr_coef
+            )
+
+            fail_point = 'SUCCESS'
+            break
 
         self.filter_params = kwargs
 
         if len(self.result) == 0:
             raise ValueError(
-                'No valid results with applied filters'
+                f'No valid results with applied filters, '
+                f'failed with to "{fail_point}". Consider '
+                f'loosening the parameters.'
             )
-            return
 
         self._stats()
 
@@ -314,6 +325,53 @@ class DubininFilteredResults:
         self.mean = np.mean(volumes)
         self.stddev = np.std(volumes)
 
+    def plot_optimum(
+        self,
+        ax=None,
+        verbose=False,
+    ):
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+
+        ax.scatter(
+            self.log_p_exp,
+            self.log_v,
+            label='all data',
+            ec='grey', fc='none',
+            marker='o',
+        )
+
+        idxmin = self.optimum['min_p_index']
+        idxmax = self.optimum['max_p_index']
+        ax.scatter(
+            self.log_p_exp[idxmin:idxmax],
+            self.log_v[idxmin:idxmax],
+            color='r', marker='o',
+            label='fit data',
+        )
+
+        x = np.linspace(
+            min(self.log_p_exp),
+            max(self.log_p_exp),
+            100
+        )
+        y = self.optimum['slope'] * x + self.optimum['intercept']
+
+        ax.plot(
+            x, y,
+            label='fit', color='grey', linestyle='dashed'
+        )
+        ax.legend(
+            title=f'exp: {self.exp:.2f}'
+        )
+
+        if verbose:
+            plt.show()
+
+        return fig, ax
+
+
     def export(
         self,
         filepath,
@@ -348,48 +406,7 @@ class DubininFilteredResults:
             index=False
         )
 
-        fig, ax = plt.subplots(1, 1)
-        """
-        pgraph.dra_plot(
-            logv=self.log_v,
-            log_n_p0p=self.log_p_exp,
-            minimum=self.optimum['min_p_index'],
-            maximum=self.optimum['max_p_index'],
-            slope=self.optimum['slope'],
-            intercept=self.optimum['intercept'],
-            exp=self.exp,
-            ax=ax,
-        )
-        """
-        ax.scatter(
-            self.log_p_exp,
-            self.log_v,
-            label='all data',
-            ec='grey', fc='none',
-            marker='o',
-        )
-
-        idxmin = self.optimum['min_p_index']
-        idxmax = self.optimum['max_p_index']
-        ax.scatter(
-            self.log_p_exp[idxmin:idxmax],
-            self.log_v[idxmin:idxmax],
-            color='r', marker='o',
-            label='fit data',
-        )
-
-
-        x = np.linspace(
-            min(self.log_p_exp),
-            max(self.log_p_exp),
-            100
-        )
-        y = self.optimum['slope'] * x + self.optimum['intercept']
-
-        ax.plot(x, y, label='fit')
-        ax.legend(
-            title=f'exp: {self.exp:.2f}'
-        )
+        fig, ax = self.plot_optimum(verbose=verbose)
 
         if verbose:
             plt.show()
@@ -419,6 +436,7 @@ def analyseDA(
         optimum_criteria=optimum_criteria,
         **kwargs
     )
+    filtered.plot_optimum(verbose=verbose)
 
     return filtered
 
@@ -430,7 +448,7 @@ def analyseDR(
     verbose=False,
     **kwargs,
 ):
-    analyseDA(
+    return analyseDA(
         isotherm,
         optimum_criteria=optimum_criteria,
         exp=2,

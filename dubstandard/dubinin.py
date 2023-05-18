@@ -196,6 +196,12 @@ class DubininResult:
                         self.stderr[i, j] = stderr
 
                         self.pore_volume[i, j] = np.exp(fit_intercept)
+                        if (
+                            np.isnan(self.pore_volume[i, j]) or
+                            np.isinf(self.pore_volume[i, j])
+                        ):
+                            self.pore_volume[i, j] = 0
+
                         self.potential[i, j] = (
                             (constants.gas_constant * self.iso_temp) /
                             (-fit_grad)**(1 / self.exp) / 1000
@@ -252,10 +258,8 @@ class DubininFilteredResults:
             )
             self.num_valid = len(self.valid_indices[0])
             self.valid_volumes = self.pore_volume_filtered[self.valid_indices]
-            print(self.valid_volumes)
 
             self.stdev_volume = np.std(self.valid_volumes)
-            print(self.stdev_volume)
 
 
 def analyseDA(

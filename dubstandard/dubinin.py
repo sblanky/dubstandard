@@ -58,7 +58,6 @@ class DubininResult:
         plateau_pressure = 0.9
         if max(isotherm.pressure()) < plateau_pressure:
             plateau_pressure = max(isotherm.pressure())
-
         self.plateau_loading = isotherm.loading_at(
             pressure=plateau_pressure,
             branch='ads',
@@ -68,7 +67,6 @@ class DubininResult:
             material_unit='g',
             material_basis='mass',
         )
-
         self.total_pore_volume = (
             self.plateau_loading * self.molar_mass /
             self.liquid_density
@@ -117,9 +115,7 @@ class DubininResult:
         ]
         self.ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
 
-
         self.rouq_expand = zero_matrix(num_points)
-
 
         def dr_fit(exp, ret=False):
             slope, intercept, corr_coef, _, stderr = stats.linregress(
@@ -173,52 +169,43 @@ class DubininResult:
             for j in range(i+1, num_points):
                 self.point_count[i, j] = j - i
 
-                try:
-                    self.pressure_min[i, j] = self.pressure[i]
-                    self.pressure_max[i, j] = self.pressure[j]
+                self.pressure_min[i, j] = self.pressure[i]
+                self.pressure_max[i, j] = self.pressure[j]
 
-                    with warnings.catch_warnings(record=True) as w:
-                        (
-                            fit_grad,
-                            fit_intercept,
-                            fit_rvalue,
-                            p_val,
-                            stderr,
-                        ) = stats.linregress(
-                            self.log_p_exp[i:j],
-                            self.log_v[i:j]
-                        )
+                if (
+                    self.rouq_knee_idx > j and
+                    self.ultrarouq_knee_idx < i
+                ):
+                    self.rouq_expand[i, j] = 1
 
-                        self.fit_grad[i, j] = fit_grad
-                        self.fit_intercept[i, j] = fit_intercept
-                        self.fit_rsquared[i, j] = fit_rvalue**2
-                        self.p_val[i, j] = p_val
-                        self.stderr[i, j] = stderr
+                with warnings.catch_warnings(record=True) as w:
+                    (
+                        fit_grad,
+                        fit_intercept,
+                        fit_rvalue,
+                        p_val,
+                        stderr,
+                    ) = stats.linregress(
+                        self.log_p_exp[i:j],
+                        self.log_v[i:j]
+                    )
 
-                        self.pore_volume[i, j] = np.exp(fit_intercept)
-                        if (
-                            np.isnan(self.pore_volume[i, j]) or
-                            np.isinf(self.pore_volume[i, j])
-                        ):
-                            self.pore_volume[i, j] = 0
+                    self.fit_grad[i, j] = fit_grad
+                    self.fit_intercept[i, j] = fit_intercept
+                    self.fit_rsquared[i, j] = fit_rvalue**2
+                    self.p_val[i, j] = p_val
+                    self.stderr[i, j] = stderr
 
-                        self.potential[i, j] = (
-                            (constants.gas_constant * self.iso_temp) /
-                            (-fit_grad)**(1 / self.exp) / 1000
-                        )
-                        if len(w) > 0:
-                            continue
+                    self.pore_volume[i, j] = np.exp(fit_intercept)
+                    if not np.isfinite(self.pore_volume[i, j]):
+                        self.pore_volume[i, j] = 0
 
-                    if (
-                        self.rouq_knee_idx > j and
-                        #  > self.pressure[j] and
-                        self.ultrarouq_knee_idx < i
-                    ):
-                        self.rouq_expand[i, j] = 1
-
-                except CalculationError as e:
-                    print(e)
-                    continue
+                    self.potential[i, j] = (
+                        (constants.gas_constant * self.iso_temp) /
+                        (-fit_grad)**(1 / self.exp) / 1000
+                    )
+                    if len(w) > 0:
+                        continue
 
 
 class DubininFilteredResults:

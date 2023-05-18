@@ -11,8 +11,8 @@ _pygaps_pressure_mode 'relative'
 _pygaps_pressure_unit 'None'
 _pygaps_material_basis 'mass'
 _pygaps_material_unit 'g'
-_pygaps_loading_basis 'volume_gas'
-_pygaps_loading_unit 'cm3'
+_pygaps_loading_basis 'molar'
+_pygaps_loading_unit 'cm3(STP)'
 _pygaps_temperature_unit 'K'
 
 loop_

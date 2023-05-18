@@ -1,4 +1,5 @@
 from scipy.interpolate import PchipInterpolator
+from scipy.signal import argrelextrema
 from scipy import optimize, stats, constants
 import numpy as np
 
@@ -14,9 +15,9 @@ def log_p_exp(
     exp
 ):
     r"""
-    Converts pressure array to log10 of array, raised to exponent
+    Converts pressure array to log of array, raised to exponent
     """
-    return (-np.log10(pressure))**exp
+    return (-np.log(pressure))**exp
 
 
 class DubininResult:
@@ -54,8 +55,12 @@ class DubininResult:
             material_basis='mass',
         )
 
+        plateau_pressure = 0.9
+        if max(isotherm.pressure()) < plateau_pressure:
+            plateau_pressure = max(isotherm.pressure())
+
         self.plateau_loading = isotherm.loading_at(
-            pressure=0.9,
+            pressure=plateau_pressure,
             branch='ads',
             pressure_mode='relative',
             loading_unit='mol',
@@ -72,7 +77,7 @@ class DubininResult:
         self.log_v = pgc.dr_da_plots.log_v_adj(
             self.loading,
             self.molar_mass,
-            self.liquid_density,
+            self.liquid_density
         )
 
         num_points = len(self.pressure)
@@ -93,6 +98,28 @@ class DubininResult:
 
         self.filter_volume = zero_matrix(num_points)
         self.filter_pressure = zero_matrix(num_points)
+
+        self.rouq_y = self.loading * (1. - self.pressure)
+        self.rouq_knee_idx = np.argmax(np.diff(self.rouq_y) < 0)
+
+        self.ultrarouq_y = (
+            np.log(self.loading) /
+            np.log(1 - self.pressure)
+        )
+        ultrarouq_knee_idx = argrelextrema(
+            self.ultrarouq_y,
+            np.less
+        )[0]
+        if ultrarouq_knee_idx.size == 0:
+            ultrarouq_knee_idx = np.array([0])
+        ultrarouq_knee_idx = ultrarouq_knee_idx[
+            ultrarouq_knee_idx < self.rouq_knee_idx
+        ]
+        self.ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
+
+
+        self.rouq_expand = zero_matrix(num_points)
+
 
         def dr_fit(exp, ret=False):
             slope, intercept, corr_coef, _, stderr = stats.linregress(
@@ -148,7 +175,7 @@ class DubininResult:
 
                 try:
                     self.pressure_min[i, j] = self.pressure[i]
-                    self.pressure_min[i, j] = self.pressure[j]
+                    self.pressure_max[i, j] = self.pressure[j]
 
                     with warnings.catch_warnings(record=True) as w:
                         (
@@ -161,21 +188,27 @@ class DubininResult:
                             self.log_p_exp[i:j],
                             self.log_v[i:j]
                         )
+
+                        self.fit_grad[i, j] = fit_grad
+                        self.fit_intercept[i, j] = fit_intercept
+                        self.fit_rsquared[i, j] = fit_rvalue**2
+                        self.p_val[i, j] = p_val
+                        self.stderr[i, j] = stderr
+
+                        self.pore_volume[i, j] = np.exp(fit_intercept)
+                        self.potential[i, j] = (
+                            (constants.gas_constant * self.iso_temp) /
+                            (-fit_grad)**(1 / self.exp) / 1000
+                        )
                         if len(w) > 0:
                             continue
 
-                    self.fit_grad[i, j] = fit_grad
-                    self.fit_intercept[i, j] = fit_intercept
-                    self.fit_rsquared[i, j] = fit_rvalue**2
-                    self.p_val[i, j] = p_val
-                    self.stderr[i, j] = stderr
-
-                    self.pore_volume[i, j] = 10**fit_intercept
-                    self.potential[i, j] = (
-                        (-np.log(10)**(self.exp - 1) *
-                         (constants.gas_constant * self.iso_temp)**(self.exp)
-                         / fit_grad)**(1 / self.exp) / 1000
-                    )
+                    if (
+                        self.rouq_knee_idx > j and
+                        #  > self.pressure[j] and
+                        self.ultrarouq_knee_idx < i
+                    ):
+                        self.rouq_expand[i, j] = 1
 
                 except CalculationError as e:
                     print(e)
@@ -202,15 +235,13 @@ class DubininFilteredResults:
         min_points = kwargs.get('min_points', 10)
         filter_mask = filter_mask * (dubinin_result.point_count > min_points)
 
-        min_r2 = kwargs.get('min_r2', 0.99)
+        min_r2 = kwargs.get('min_r2', 0.9)
         filter_mask = filter_mask * (dubinin_result.fit_rsquared > min_r2)
 
-        max_volume = kwargs.get('max_volume', dubinin_result.total_pore_volume)
-        filter_mask = filter_mask * (dubinin_result.fit_rsquared < max_volume)
+        filter_mask = filter_mask * dubinin_result.rouq_expand
 
-        p_limits = kwargs.get('p_limits', [1e-5, 0.001])
-        filter_mask = filter_mask * (dubinin_result.pressure_min > p_limits[0])
-        filter_mask = filter_mask * (dubinin_result.pressure_max < p_limits[1])
+        max_volume = kwargs.get('max_volume', dubinin_result.total_pore_volume)
+        filter_mask = filter_mask * (dubinin_result.pore_volume < max_volume)
 
         self.has_valid_volumes = False
         if np.sum(filter_mask) != 0:
@@ -221,8 +252,11 @@ class DubininFilteredResults:
             )
             self.num_valid = len(self.valid_indices[0])
             self.valid_volumes = self.pore_volume_filtered[self.valid_indices]
+            print(self.valid_volumes)
 
             self.stdev_volume = np.std(self.valid_volumes)
+            print(self.stdev_volume)
+
 
 def analyseDA(
     isotherm,
@@ -270,7 +304,7 @@ def analyseDR(
 
 if __name__ == "__main__":
     inPath = '../example/aif/'
-    file = 'Zeolite-13X.aif'
+    file = 'Al_fumarate.aif'
     print(f'{inPath}{file}')
     isotherm = pgp.isotherm_from_aif(f'{inPath}{file}')
     analyseDR(isotherm, verbose=True,) 

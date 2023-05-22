@@ -20,6 +20,20 @@ def log_p_exp(
     return (-np.log(pressure))**exp
 
 
+def sq_log_potential_from_spline(
+    log_p_exp,
+    log_v,
+    total_pore_volume,
+    temperature
+):
+    log_RT = np.log(constants.gas_constant * temperature)
+    relative_log_volume = log_v - np.log(total_pore_volume)
+    return PchipInterpolator(
+        log_p_exp,
+        (relative_log_volume / log_p_exp) / log_RT
+    )
+
+
 class DubininResult:
     """
     Store all possible Dubinin results from an isotherm,
@@ -88,7 +102,8 @@ class DubininResult:
         self.stderr = zero_matrix(num_points)
         self.second_derivative = zero_matrix(num_points)
 
-        self.potential = zero_matrix(num_points)
+        self.potentials = zero_matrix(num_points)
+        self.log_sq_potential = zero_matrix(num_points)
         self.pore_volume = zero_matrix(num_points)
 
         self.pressure_max = zero_matrix(num_points)
@@ -116,6 +131,8 @@ class DubininResult:
         self.ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
 
         self.rouq_expand = zero_matrix(num_points)
+
+        self.rouq_linear = zero_matrix(num_points)
 
         def dr_fit(exp, ret=False):
             slope, intercept, corr_coef, _, stderr = stats.linregress(
@@ -158,10 +175,25 @@ class DubininResult:
                 np.flip(self.log_p_exp),
                 np.flip(self.log_v),
             )
-            second_derivative = spline.derivative(nu=2)
+            self.spline_log_p_exp = np.linspace(
+                min(self.log_p_exp),
+                max(self.log_p_exp),
+                1000
+            )
+            self.spline_log_v = spline(self.spline_log_p_exp)
+            self.spline_log_sq_potential = sq_log_potential_from_spline(
+                self.spline_log_p_exp, self.spline_log_v,
+                self.total_pore_volume, self.iso_temp,
+            )
         except ValueError as e:
             print(e)
             pass
+
+        def distance_to_pchip(_s, _log_sq_potential):
+            return (
+                spline.__call__(_s, nu=0, extrapolate=None)
+                - _log_sq_potential
+            )
 
         num_points = len(pressure)
         self.result = {}
@@ -200,10 +232,26 @@ class DubininResult:
                     if not np.isfinite(self.pore_volume[i, j]):
                         self.pore_volume[i, j] = 0
 
-                    self.potential[i, j] = (
+                    self.potentials[i, j] = (
                         (constants.gas_constant * self.iso_temp) /
                         (-fit_grad)**(1 / self.exp) / 1000
                     )
+                    if not np.isfinite(self.potentials[i, j]):
+                        self.potentials[i, j] = 0
+                    self.log_sq_potential[i, j] = 2*np.log(self.potentials[i, j])
+
+                    try:
+                        opt_res_pchip = optimize.minimize(
+                            fun=distance_to_pchip,
+                            x0=self.log_p_exp[i:j],
+                            args=self.log_sq_potential[i,j]
+                        )
+                    except ValueError as e:
+                        pass
+
+
+                    self.pchip_log_p_exp = opt_res_pchip.x[0]
+
                     if len(w) > 0:
                         continue
 
@@ -243,11 +291,32 @@ class DubininFilteredResults:
             self.valid_indices = np.where(
                 self.pore_volume_filtered > 0
             )
+
             self.num_valid = len(self.valid_indices[0])
             self.valid_volumes = self.pore_volume_filtered[self.valid_indices]
+            self.valid_point_counts = self.point_count[self.valid_indices]
+            self.valid_rsquared = self.fit_rsquared[self.valid_indices]
 
             self.stdev_volume = np.std(self.valid_volumes)
 
+            self.potential_filtered = self.potentials * filter_mask
+            self.valid_potentials = self.potential_filtered[self.valid_indices]
+            self.stdev_potentials = np.std(self.valid_potentials)
+
+            self._optimise_median_potential()
+
+    def _optimise_median_potential(self):
+        median_potential = np.median(self.valid_potentials)
+        indeces = np.where(self.potentials == median_potential)
+        median_i = int(indeces[0])
+        median_j = int(indeces[1])
+
+        self.i = median_i
+        self.j = median_j
+
+        self.volume = self.pore_volume_filtered[median_i, median_j]
+        self.rsquared = self.fit_rsquared[median_i, median_j]
+        self.ans_potential = self.potentials[median_, median_j]
 
 def analyseDA(
     isotherm,
@@ -295,7 +364,7 @@ def analyseDR(
 
 if __name__ == "__main__":
     inPath = '../example/aif/'
-    file = 'Al_fumarate.aif'
+    file = 'NU-1000.aif'
     print(f'{inPath}{file}')
     isotherm = pgp.isotherm_from_aif(f'{inPath}{file}')
     analyseDR(isotherm, verbose=True,) 

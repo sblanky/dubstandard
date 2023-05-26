@@ -123,11 +123,16 @@ class DubininResult:
             self.ultrarouq_y,
             np.less
         )[0]
-        if ultrarouq_knee_idx.size == 0:
+        if (
+            ultrarouq_knee_idx.size == 0 or
+            ultrarouq_knee_idx >= self.rouq_knee_idx
+        ):
             ultrarouq_knee_idx = np.array([0])
+
         ultrarouq_knee_idx = ultrarouq_knee_idx[
             ultrarouq_knee_idx < self.rouq_knee_idx
         ]
+
         self.ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
 
         self.rouq_expand = zero_matrix(num_points)

@@ -330,6 +330,7 @@ class DubininFilteredResults:
         self.rsquared = self.fit_rsquared[median_i, median_j]
         self.ans_potential = self.potentials[median_i, median_j]
 
+
 def analyseDA(
     isotherm,
     optimum_criteria='max_points',
@@ -375,8 +376,10 @@ def analyseDR(
 
 
 if __name__ == "__main__":
+    import glob
     inPath = '../example/aif/'
-    file = 'NU-1000.aif'
-    print(f'{inPath}{file}')
-    isotherm = pgp.isotherm_from_aif(f'{inPath}{file}')
-    analyseDR(isotherm, verbose=True,) 
+    for file in glob.glob(f'{inPath}*.aif'):
+        print(file)
+        isotherm = pgp.isotherm_from_aif(file)
+        print(analyseDR(isotherm, verbose=True,).has_valid_volumes)
+        print(analyseDA(isotherm, verbose=True,).has_valid_volumes)

@@ -246,11 +246,12 @@ class DubininResult:
                             x0=self.log_p_exp[i:j],
                             args=self.log_sq_potential[i,j]
                         )
+                        self.pchip_log_p_exp = opt_res_pchip.x[0]
+
                     except ValueError as e:
                         pass
-
-
-                    self.pchip_log_p_exp = opt_res_pchip.x[0]
+                    except NameError as e:
+                        pass
 
                     if len(w) > 0:
                         continue
@@ -307,6 +308,12 @@ class DubininFilteredResults:
 
     def _optimise_median_potential(self):
         median_potential = np.median(self.valid_potentials)
+        if median_potential not in self.valid_potentials:
+            median_potential = min(
+                self.valid_potentials,
+                key=lambda x: (median_potential-x)
+            )
+
         indeces = np.where(self.potentials == median_potential)
         median_i = int(indeces[0])
         median_j = int(indeces[1])
@@ -316,7 +323,7 @@ class DubininFilteredResults:
 
         self.volume = self.pore_volume_filtered[median_i, median_j]
         self.rsquared = self.fit_rsquared[median_i, median_j]
-        self.ans_potential = self.potentials[median_, median_j]
+        self.ans_potential = self.potentials[median_i, median_j]
 
 def analyseDA(
     isotherm,

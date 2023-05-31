@@ -3,6 +3,7 @@ from scipy.signal import argrelextrema
 from scipy import optimize, stats, constants
 import numpy as np
 
+import logging
 import warnings
 
 import pygaps.parsing as pgp
@@ -243,20 +244,22 @@ class DubininResult:
                     )
                     if not np.isfinite(self.potentials[i, j]):
                         self.potentials[i, j] = 0
-                    self.log_sq_potential[i, j] = 2*np.log(self.potentials[i, j])
+                    self.log_sq_potential[i, j] = 2 * np.log(
+                        self.potentials[i, j]
+                    )
 
                     try:
                         opt_res_pchip = optimize.minimize(
                             fun=distance_to_pchip,
                             x0=self.log_p_exp[i:j],
-                            args=self.log_sq_potential[i,j]
+                            args=self.log_sq_potential[i, j]
                         )
                         self.pchip_log_p_exp = opt_res_pchip.x[0]
 
                     except ValueError as e:
-                        pass
+                        logging.exception(e)
                     except NameError as e:
-                        pass
+                        logging.exception(e)
 
                     if len(w) > 0:
                         continue

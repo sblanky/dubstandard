@@ -387,7 +387,7 @@ def analyseDR(
 
 if __name__ == "__main__":
     import glob
-    inPath = '../example/aif/'
+    inPath = '../aif/'
     for file in glob.glob(f'{inPath}*.aif'):
         print(file)
         isotherm = pgp.isotherm_from_aif(file)

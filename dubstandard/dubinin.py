@@ -2,12 +2,16 @@ from scipy.interpolate import PchipInterpolator
 from scipy.signal import argrelextrema
 from scipy import optimize, stats, constants
 import numpy as np
+import matplotlib.pyplot as plt
 
 import logging
 import warnings
+from pathlib import Path
+from pprint import pprint
 
 import pygaps.parsing as pgp
 import pygaps.characterisation as pgc
+from pygaps.graphing.calc_graphs import dra_plot
 from pygaps.utilities.exceptions import CalculationError
 
 
@@ -19,20 +23,6 @@ def log_p_exp(
     Converts pressure array to log of array, raised to exponent
     """
     return (-np.log(pressure))**exp
-
-
-def sq_log_potential_from_spline(
-    log_p_exp,
-    log_v,
-    total_pore_volume,
-    temperature
-):
-    log_RT = np.log(constants.gas_constant * temperature)
-    relative_log_volume = log_v - np.log(total_pore_volume)
-    return PchipInterpolator(
-        log_p_exp,
-        (relative_log_volume / log_p_exp) / log_RT
-    )
 
 
 class DubininResult:
@@ -176,31 +166,6 @@ class DubininResult:
         loading,
     ):
 
-        try:
-            spline = PchipInterpolator(
-                np.flip(self.log_p_exp),
-                np.flip(self.log_v),
-            )
-            self.spline_log_p_exp = np.linspace(
-                min(self.log_p_exp),
-                max(self.log_p_exp),
-                1000
-            )
-            self.spline_log_v = spline(self.spline_log_p_exp)
-            self.spline_log_sq_potential = sq_log_potential_from_spline(
-                self.spline_log_p_exp, self.spline_log_v,
-                self.total_pore_volume, self.iso_temp,
-            )
-        except ValueError as e:
-            print(e)
-            pass
-
-        def distance_to_pchip(_s, _log_sq_potential):
-            return (
-                spline.__call__(_s, nu=0, extrapolate=None)
-                - _log_sq_potential
-            )
-
         num_points = len(pressure)
         self.result = {}
         for i in range(num_points):
@@ -248,19 +213,6 @@ class DubininResult:
                         self.potentials[i, j]
                     )
 
-                    try:
-                        opt_res_pchip = optimize.minimize(
-                            fun=distance_to_pchip,
-                            x0=self.log_p_exp[i:j],
-                            args=self.log_sq_potential[i, j]
-                        )
-                        self.pchip_log_p_exp = opt_res_pchip.x[0]
-
-                    except ValueError as e:
-                        logging.exception(e)
-                    except NameError as e:
-                        logging.exception(e)
-
                     if len(w) > 0:
                         continue
 
@@ -278,20 +230,21 @@ class DubininFilteredResults:
         **kwargs,
     ):
         self.__dict__.update(dubinin_result.__dict__)
-        self.filter_params = kwargs
 
         filter_mask = np.ones_like(dubinin_result.point_count)
 
         min_points = kwargs.get('min_points', 10)
         filter_mask = filter_mask * (dubinin_result.point_count > min_points)
 
-        min_r2 = kwargs.get('min_r2', 0.9)
+        min_r2 = kwargs.get('min_r2', 0.95)
         filter_mask = filter_mask * (dubinin_result.fit_rsquared > min_r2)
 
         filter_mask = filter_mask * dubinin_result.rouq_expand
 
         max_volume = kwargs.get('max_volume', dubinin_result.total_pore_volume)
         filter_mask = filter_mask * (dubinin_result.pore_volume < max_volume)
+
+        self.filter_params = kwargs
 
         self.has_valid_volumes = False
         if np.sum(filter_mask) != 0:
@@ -332,6 +285,53 @@ class DubininFilteredResults:
         self.volume = self.pore_volume_filtered[median_i, median_j]
         self.rsquared = self.fit_rsquared[median_i, median_j]
         self.ans_potential = self.potentials[median_i, median_j]
+        self.opt_point_count = self.point_count[median_i, median_j]
+
+    def export(self, filepath):
+        filepath = Path(filepath)
+
+        with (filepath / 'filter_summary.json').open('w') as fp:
+            pprint(self.filter_params, fp)
+
+        with (filepath / 'results.txt').open('w') as fp:
+            if self.has_valid_volumes:
+                print(
+                    f'Optimum Dubinin fit with exponent {self.exp}: ',
+                    file=fp
+                )
+                print(f'Micropore volume: {self.volume}', file=fp)
+                print(f'total points: {self.opt_point_count}', file=fp)
+                print(f'r-squared: {self.rsquared}', file=fp)
+                print(f'potential: {self.ans_potential}', file=fp)
+                print(
+                    f'pressure range: '
+                    f'{self.pressure[self.i]}-{self.pressure[self.j]}',
+                    file=fp
+                )
+            else:
+                print(
+                    f'No valid volumes found for {self.material} with '
+                    f'exponent of {self.exp}\n'
+                    f'Try relaxing filter parameters or different '
+                    f'exponent',
+                    file=fp
+                )
+
+        if self.has_valid_volumes:
+            fig, ax = plt.subplots(1, 1)
+            dra_plot(
+                self.log_v, self.log_p_exp,
+                minimum=self.i, maximum=self.j,
+                slope=self.fit_grad[self.i, self.j],
+                intercept=self.fit_intercept[self.i, self.j],
+                exp=self.exp,
+                ax=ax,
+            )
+            plt.savefig(
+                filepath / 'optimum_plot.png',
+                bbox_inches='tight'
+            )
+            plt.close()
 
 
 def analyseDA(
@@ -345,7 +345,13 @@ def analyseDA(
     if output_dir is None:
         output_dir = './dubinin/'
 
-    output_subdir = f'{output_dir}{isotherm.material}/'
+    material = Path(str(isotherm.material))
+
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
+    output_subdir = output_dir / material
+    output_subdir.mkdir(exist_ok=True, parents=True)
 
     result = DubininResult(
         isotherm,
@@ -357,6 +363,7 @@ def analyseDA(
         optimum_criteria=optimum_criteria,
         **kwargs
     )
+    filtered.export(output_subdir)
 
     return filtered
 
@@ -384,5 +391,11 @@ if __name__ == "__main__":
     for file in glob.glob(f'{inPath}*.aif'):
         print(file)
         isotherm = pgp.isotherm_from_aif(file)
-        print(analyseDR(isotherm, verbose=True,).has_valid_volumes)
-        print(analyseDA(isotherm, verbose=True,).has_valid_volumes)
+        print(analyseDR(
+            isotherm, verbose=True,
+            output_dir='../example_result/DR/',
+        ).has_valid_volumes)
+        print(analyseDA(
+            isotherm, verbose=True,
+            output_dir='../example_result/DA/',
+        ).has_valid_volumes)

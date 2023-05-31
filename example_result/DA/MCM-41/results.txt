@@ -1,0 +1,2 @@
+No valid volumes found for MCM-41 with exponent of 2.999996009801031
+Try relaxing filter parameters or different exponent

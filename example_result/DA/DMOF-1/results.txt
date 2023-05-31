@@ -1,0 +1,6 @@
+Optimum Dubinin fit with exponent 2.999994293088775: 
+Micropore volume: 2.544645144529149
+total points: 14.0
+r-squared: 0.9500880743799051
+potential: 7.180262753274128
+pressure range: 0.00061237-0.01347842

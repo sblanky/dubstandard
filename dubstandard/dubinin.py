@@ -46,12 +46,10 @@ class DubininResult:
         self.molar_mass = self.adsorbate.molar_mass()
         self.liquid_density = self.adsorbate.liquid_density(self.iso_temp)
 
-        self.pressure = isotherm.pressure(
-            branch='ads',
-            pressure_mode='relative',
-        )
+        isotherm.convert(pressure_mode='relative')
+        self.pressure = isotherm.pressure(branch='ads')
         self.loading = isotherm.loading_at(
-            pressure=list(self.pressure),
+            pressure=self.pressure,
             branch='ads',
             pressure_mode='relative',
             loading_unit='mol',
@@ -391,11 +389,17 @@ if __name__ == "__main__":
     for file in glob.glob(f'{inPath}*.aif'):
         print(file)
         isotherm = pgp.isotherm_from_aif(file)
-        print(analyseDR(
-            isotherm, verbose=True,
-            output_dir='../example_result/DR/',
-        ).has_valid_volumes)
-        print(analyseDA(
-            isotherm, verbose=True,
-            output_dir='../example_result/DA/',
-        ).has_valid_volumes)
+        try:
+            print(analyseDR(
+                isotherm, verbose=True,
+                output_dir='../example_result/DR/',
+            ).valid_potentials)
+        except AttributeError:
+            pass
+        try:
+            print(analyseDA(
+                isotherm, verbose=True,
+                output_dir='../example_result/DA/',
+            ).valid_potentials)
+        except AttributeError:
+            pass

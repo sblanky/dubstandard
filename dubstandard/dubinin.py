@@ -112,6 +112,8 @@ class DubininResult:
             self.ultrarouq_y,
             np.less
         )[0]
+        if len(ultrarouq_knee_idx) > 1:
+            ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
         if (
             ultrarouq_knee_idx.size == 0 or
             ultrarouq_knee_idx >= self.rouq_knee_idx
@@ -276,6 +278,19 @@ class DubininFilteredResults:
         indeces = np.where(self.potentials == median_potential)
         median_i = int(indeces[0])
         median_j = int(indeces[1])
+        """
+        try:
+            median_i = int(indeces[0])
+            median_j = int(indeces[1])
+        except TypeError as e:
+            print(e)
+            print(self.valid_volumes)
+            print(median_potential)
+            print(indeces)
+            print(indeces[0])
+            print(indeces[1])
+            return
+        """
 
         self.i = median_i
         self.j = median_j

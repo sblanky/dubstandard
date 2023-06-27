@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2.999996009801031: 
-Micropore volume: 2.2367453629955745
-total points: 35.0
-r-squared: 0.9949115831607734
-potential: 4.804680315662963
-pressure range: 0.00118819-0.01352934
+No valid volumes found for MIL-100 with exponent of 2.9999946119024727
+Try relaxing filter parameters or different exponent

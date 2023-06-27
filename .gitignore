@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Build
-autobetsi.egg-info/*
+dubstandard.egg-info/*
 build/*
 
 # Swap
@@ -28,3 +28,9 @@ tags
 [._]*.un~
 
 #results_data
+dubstandard/dubinin/*
+
+#tests
+dubstandard/test_method.py
+dubstandard/double_rouquerol.py
+dubstandard/gas_energy.py

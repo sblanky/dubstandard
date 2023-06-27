@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2: 
-Micropore volume: 1.5009825958722651
-total points: 11.0
-r-squared: 0.9745286139827573
-potential: 3.4092068878345962
-pressure range: 0.013-0.22260424
+No valid volumes found for MCM-41 with exponent of 2
+Try relaxing filter parameters or different exponent

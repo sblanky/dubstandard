@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2: 
-Micropore volume: 2.560900543799945
-total points: 11.0
-r-squared: 0.9931693202215606
-potential: 3.346592404732505
-pressure range: 0.005757-0.149684
+No valid volumes found for PCN-777 with exponent of 2
+Try relaxing filter parameters or different exponent

@@ -14,6 +14,8 @@ import pygaps.characterisation as pgc
 from pygaps.graphing.calc_graphs import dra_plot
 from pygaps.utilities.exceptions import CalculationError
 
+from clean import clean_isotherm
+
 
 def log_p_exp(
     pressure,
@@ -46,17 +48,14 @@ class DubininResult:
         self.molar_mass = self.adsorbate.molar_mass()
         self.liquid_density = self.adsorbate.liquid_density(self.iso_temp)
 
-        isotherm.convert(pressure_mode='relative')
-        self.pressure = isotherm.pressure(branch='ads')
-        self.loading = isotherm.loading_at(
-            pressure=self.pressure,
-            branch='ads',
+        isotherm.convert(
             pressure_mode='relative',
             loading_unit='mol',
             loading_basis='molar',
             material_unit='g',
             material_basis='mass',
         )
+        self.pressure, self.loading = clean_isotherm(isotherm)
 
         plateau_pressure = 0.9
         if max(isotherm.pressure()) < plateau_pressure:
@@ -120,11 +119,10 @@ class DubininResult:
         ):
             ultrarouq_knee_idx = np.array([0])
 
-        ultrarouq_knee_idx = ultrarouq_knee_idx[
+        self.ultrarouq_knee_idx = ultrarouq_knee_idx[
             ultrarouq_knee_idx < self.rouq_knee_idx
         ]
 
-        self.ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
 
         self.rouq_expand = zero_matrix(num_points)
 

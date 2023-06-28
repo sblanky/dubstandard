@@ -55,6 +55,7 @@ class DubininResult:
     def __init__(
         self,
         isotherm,
+        clean=False,
         exp: float = None,
         **kwargs,
     ):
@@ -74,7 +75,7 @@ class DubininResult:
             material_unit='g',
             material_basis='mass',
         )
-        self.pressure, self.loading = clean_isotherm(isotherm)
+        self.loading, self.pressure = clean_isotherm(isotherm)
 
         plateau_pressure = kwargs.get('plateau_pressure', 0.95)
         if max(isotherm.pressure()) < plateau_pressure:
@@ -100,7 +101,7 @@ class DubininResult:
         self.log_v = pgc.dr_da_plots.log_v_adj(
             self.loading,
             self.molar_mass,
-            self.liquid_density
+            self.iso_temp
         )
 
         num_points = len(self.pressure)
@@ -299,19 +300,6 @@ class DubininFilteredResults:
         indeces = np.where(self.potentials == median_potential)
         median_i = int(indeces[0])
         median_j = int(indeces[1])
-        """
-        try:
-            median_i = int(indeces[0])
-            median_j = int(indeces[1])
-        except TypeError as e:
-            print(e)
-            print(self.valid_volumes)
-            print(median_potential)
-            print(indeces)
-            print(indeces[0])
-            print(indeces[1])
-            return
-        """
 
         self.i = median_i
         self.j = median_j
@@ -427,17 +415,15 @@ if __name__ == "__main__":
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             isotherm = pgp.isotherm_from_aif(file)
-        try:
-            print(analyseDR(
-                isotherm, verbose=True,
-                output_dir='../example_result/DR/',
-            ).valid_potentials)
-        except AttributeError:
-            pass
-        try:
-            print(analyseDA(
-                isotherm, verbose=True,
-                output_dir='../example_result/DA/',
-            ).valid_potentials)
-        except AttributeError:
-            pass
+        dub = analyseDR(
+            isotherm, verbose=True,
+            output_dir='../example_result/DR/',
+        )
+        if dub.has_valid_volumes:
+            print(dub.pore_volume_filtered)
+        dub = analyseDA(
+            isotherm, verbose=True,
+            output_dir='../example_result/DA/',
+        )
+        if dub.has_valid_volumes:
+            print(dub.pore_volume_filtered)

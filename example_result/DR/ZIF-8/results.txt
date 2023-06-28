@@ -1,2 +1,6 @@
-No valid volumes found for ZIF-8 with exponent of 2
-Try relaxing filter parameters or different exponent
+Optimum Dubinin fit with exponent 2: 
+Micropore volume: 0.007026674076049542
+total points: 12.0
+r-squared: 0.9763585826996328
+potential: 5.75540716568954
+pressure range: 0.00052108-0.00978126

@@ -1,2 +1,6 @@
-No valid volumes found for NU-1102 with exponent of 2.9999953453191597
-Try relaxing filter parameters or different exponent
+Optimum Dubinin fit with exponent 2.999994685541883: 
+Micropore volume: 0.07107297354624183
+total points: 24.0
+r-squared: 0.9737796774206448
+potential: 2.8115894584912113
+pressure range: 0.017685-0.105525

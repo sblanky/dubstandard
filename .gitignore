@@ -34,3 +34,4 @@ dubstandard/dubinin/*
 dubstandard/test_method.py
 dubstandard/double_rouquerol.py
 dubstandard/gas_energy.py
+dubstandard/plot_test.py

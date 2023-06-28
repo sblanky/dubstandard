@@ -1,2 +1,6 @@
-No valid volumes found for UiO-66-NH2 with exponent of 2
-Try relaxing filter parameters or different exponent
+Optimum Dubinin fit with exponent 2: 
+Micropore volume: 0.01895284468038439
+total points: 21.0
+r-squared: 0.987284754970494
+potential: 6.230095119755107
+pressure range: 1.04e-05-0.06982171

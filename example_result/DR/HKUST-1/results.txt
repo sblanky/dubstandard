@@ -1,2 +1,6 @@
-No valid volumes found for HKUST-1 with exponent of 2
-Try relaxing filter parameters or different exponent
+Optimum Dubinin fit with exponent 2: 
+Micropore volume: 0.03231970114093021
+total points: 17.0
+r-squared: 0.9542596986376513
+potential: 6.612386512111027
+pressure range: 1.24e-06-0.00304576

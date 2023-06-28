@@ -57,18 +57,22 @@ class DubininResult:
         )
         self.pressure, self.loading = clean_isotherm(isotherm)
 
-        plateau_pressure = 0.9
+        plateau_pressure = kwargs.get('plateau_pressure', 0.95)
         if max(isotherm.pressure()) < plateau_pressure:
             plateau_pressure = max(isotherm.pressure())
-        self.plateau_loading = isotherm.loading_at(
-            pressure=plateau_pressure,
-            branch='ads',
-            pressure_mode='relative',
-            loading_unit='mol',
-            loading_basis='molar',
-            material_unit='g',
-            material_basis='mass',
-        )
+
+        if 'max_loading' in kwargs:
+            self.plateau_loading = kwargs['max_loading']
+        else:
+            self.plateau_loading = isotherm.loading_at(
+                pressure=plateau_pressure,
+                branch='ads',
+                pressure_mode='relative',
+                loading_unit='mol',
+                loading_basis='molar',
+                material_unit='g',
+                material_basis='mass',
+            )
         self.total_pore_volume = (
             self.plateau_loading * self.molar_mass /
             self.liquid_density
@@ -240,7 +244,7 @@ class DubininFilteredResults:
         filter_mask = filter_mask * dubinin_result.rouq_expand
 
         max_volume = kwargs.get('max_volume', dubinin_result.total_pore_volume)
-        filter_mask = filter_mask * (dubinin_result.pore_volume < max_volume)
+        filter_mask = filter_mask * (dubinin_result.pore_volume <= max_volume)
 
         self.filter_params = kwargs
 
@@ -401,7 +405,9 @@ if __name__ == "__main__":
     inPath = '../aif/'
     for file in glob.glob(f'{inPath}*.aif'):
         print(file)
-        isotherm = pgp.isotherm_from_aif(file)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            isotherm = pgp.isotherm_from_aif(file)
         try:
             print(analyseDR(
                 isotherm, verbose=True,

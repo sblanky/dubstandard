@@ -249,9 +249,11 @@ class DubininFilteredResults:
         self,
         dubinin_result,
         optimum_criteria: str = 'max_points',
+        verbose=False,
         **kwargs,
     ):
         self.__dict__.update(dubinin_result.__dict__)
+        self.verbose=verbose
 
         filter_mask = np.ones_like(dubinin_result.point_count)
 
@@ -309,7 +311,7 @@ class DubininFilteredResults:
         self.ans_potential = self.potentials[median_i, median_j]
         self.opt_point_count = self.point_count[median_i, median_j]
 
-    def export(self, filepath):
+    def export(self, filepath, verbose):
         filepath = Path(filepath)
 
         with (filepath / 'filter_summary.json').open('w') as fp:
@@ -353,6 +355,8 @@ class DubininFilteredResults:
                 filepath / 'optimum_plot.png',
                 bbox_inches='tight'
             )
+            if verbose:
+                plt.show()
             plt.close()
 
 
@@ -383,9 +387,10 @@ def analyseDA(
     filtered = DubininFilteredResults(
         result,
         optimum_criteria=optimum_criteria,
+        verbose=verbose,
         **kwargs
     )
-    filtered.export(output_subdir)
+    filtered.export(output_subdir, verbose=verbose)
 
     return filtered
 

@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2: 
-Micropore volume: 0.02828852338156834
-total points: 11.0
-r-squared: 0.9518587675353395
-potential: 8.196421361081699
-pressure range: 0.00061237-0.00659992
+No valid volumes found for DMOF-1 with exponent of 2
+Try relaxing filter parameters or different exponent

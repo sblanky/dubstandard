@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2: 
-Micropore volume: 0.01206019232425952
-total points: 12.0
-r-squared: 0.9579291869912357
-potential: 10.431099556308087
-pressure range: 0.00041014-0.01367232
+No valid volumes found for Zeolite-13X with exponent of 2
+Try relaxing filter parameters or different exponent

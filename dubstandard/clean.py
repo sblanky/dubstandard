@@ -33,6 +33,7 @@ if __name__ == "__main__":
     inPath = '/home/pcxtsbl/CodeProjects/labcore_upload/robert/revise/aif/'
     file = 'LAC2800.aif'
     isotherm = pgp.isotherm_from_aif(f'{inPath}{file}')
+    isotherm.convert()
     print(file)
     print(isotherm)
     print(clean_isotherm(isotherm))

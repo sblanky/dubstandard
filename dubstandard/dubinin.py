@@ -101,7 +101,7 @@ class DubininResult:
         self.log_v = pgc.dr_da_plots.log_v_adj(
             self.loading,
             self.molar_mass,
-            self.iso_temp
+            self.liquid_density,
         )
 
         num_points = len(self.pressure)
@@ -220,6 +220,8 @@ class DubininResult:
                     self.fit_rsquared[i, j] = fit_rvalue**2
                     self.p_val[i, j] = p_val
                     self.stderr[i, j] = stderr
+
+                    pore_filled_molar = np.exp(fit_intercept)
 
                     self.pore_volume[i, j] = np.exp(fit_intercept)
                     if not np.isfinite(self.pore_volume[i, j]):
@@ -363,6 +365,7 @@ class DubininFilteredResults:
 def analyseDA(
     isotherm,
     optimum_criteria='max_points',
+    material=None,
     exp=None,
     output_dir=None,
     verbose=False,
@@ -371,7 +374,8 @@ def analyseDA(
     if output_dir is None:
         output_dir = './dubinin/'
 
-    material = Path(str(isotherm.material))
+    if material is None:
+        material = Path(str(isotherm.material))
 
     if isinstance(output_dir, str):
         output_dir = Path(output_dir)

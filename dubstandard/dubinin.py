@@ -418,7 +418,19 @@ def analyseDR(
 
 if __name__ == "__main__":
     import glob
-    inPath = '../aif/'
+    #inPath = '../aif/'
+    inPath = '/home/pcxtsbl/CodeProjects/sultan_marta/adsorption/'
+    for file in glob.glob(f'{inPath}*.aif'):
+        print(file)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            isotherm = pgp.isotherm_from_aif(file)
+            dub = analyseDR(
+                isotherm, 
+                output_dir=f'{inPath}DR/'
+            )
+        print(dub.volume)
+    """
     for file in glob.glob(f'{inPath}*.aif'):
         print(file)
         with warnings.catch_warnings():
@@ -436,3 +448,4 @@ if __name__ == "__main__":
         )
         if dub.has_valid_volumes:
             print(dub.pore_volume_filtered)
+    """

@@ -93,6 +93,16 @@ class DubininResult:
                 material_unit='g',
                 material_basis='mass',
             )
+        self.characteristic_loading = self.plateau_loading / np.e
+        self.characteristic_pressure = isotherm.pressure_at(
+            loading=self.characteristic_loading,
+            branch='ads',
+            pressure_mode='relative',
+        )
+        self.characteristic_energy = (
+            constants.gas_constant * self.iso_temp *
+            np.log(1 / self.characteristic_pressure)
+        ) / 1000
         self.total_pore_volume = (
             self.plateau_loading * self.molar_mass /
             self.liquid_density
@@ -262,7 +272,7 @@ class DubininFilteredResults:
         min_points = kwargs.get('min_points', 10)
         filter_mask = filter_mask * (dubinin_result.point_count > min_points)
 
-        min_r2 = kwargs.get('min_r2', 0.95)
+        min_r2 = kwargs.get('min_r2', 0.99)
         filter_mask = filter_mask * (dubinin_result.fit_rsquared > min_r2)
 
         filter_mask = filter_mask * dubinin_result.rouq_expand
@@ -279,39 +289,39 @@ class DubininFilteredResults:
             self.valid_indices = np.where(
                 self.pore_volume_filtered > 0
             )
+            self.potential_filtered = self.potentials * filter_mask
 
             self.num_valid = len(self.valid_indices[0])
+
+            self.valid_potentials = self.potential_filtered[self.valid_indices]
             self.valid_volumes = self.pore_volume_filtered[self.valid_indices]
             self.valid_point_counts = self.point_count[self.valid_indices]
             self.valid_rsquared = self.fit_rsquared[self.valid_indices]
 
-            self.stdev_volume = np.std(self.valid_volumes)
+            self._find_nearest_idx()
 
-            self.potential_filtered = self.potentials * filter_mask
-            self.valid_potentials = self.potential_filtered[self.valid_indices]
-            self.stdev_potentials = np.std(self.valid_potentials)
+            self.volume = self.pore_volume_filtered[self.k]
+            self.rsquared = self.fit_rsquared[self.k]
+            self.ans_potential = self.potentials[self.k]
+            self.opt_point_count = self.point_count[self.k]
 
-            self._optimise_median_potential()
+    def _find_nearest_idx(self):
+        closest = np.argmin(
+            np.abs(self.valid_potentials - self.characteristic_energy)
+        )
+        self.k = self.valid_potentials.index(closest)
+        self.k = np.unravel_index(
+            np.argmin(
+                np.abs(self.valid_potentials - self.characteristic_energy),
+            ), self.valid_potentials.shape
+        )[0]
+        self.i = np.unravel_index(
+            self.
+        )
+        print(self.k)
+        #self.i = coords[0]
+        #self.j = coords[1]
 
-    def _optimise_median_potential(self):
-        median_potential = np.median(self.valid_potentials)
-        if median_potential not in self.valid_potentials:
-            median_potential = min(
-                self.valid_potentials,
-                key=lambda x: (median_potential-x)
-            )
-
-        indeces = np.where(self.potentials == median_potential)
-        median_i = int(indeces[0])
-        median_j = int(indeces[1])
-
-        self.i = median_i
-        self.j = median_j
-
-        self.volume = self.pore_volume_filtered[median_i, median_j]
-        self.rsquared = self.fit_rsquared[median_i, median_j]
-        self.ans_potential = self.potentials[median_i, median_j]
-        self.opt_point_count = self.point_count[median_i, median_j]
 
     def export(self, filepath, verbose):
         filepath = Path(filepath)
@@ -329,11 +339,13 @@ class DubininFilteredResults:
                 print(f'total points: {self.opt_point_count}', file=fp)
                 print(f'r-squared: {self.rsquared}', file=fp)
                 print(f'potential: {self.ans_potential}', file=fp)
+                """
                 print(
                     f'pressure range: '
                     f'{self.pressure[self.i]}-{self.pressure[self.j]}',
                     file=fp
                 )
+                """
             else:
                 print(
                     f'No valid volumes found for {self.material} with '
@@ -417,35 +429,29 @@ def analyseDR(
 
 
 if __name__ == "__main__":
-    import glob
-    #inPath = '../aif/'
-    inPath = '/home/pcxtsbl/CodeProjects/sultan_marta/adsorption/'
-    for file in glob.glob(f'{inPath}*.aif'):
-        print(file)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            isotherm = pgp.isotherm_from_aif(file)
-            dub = analyseDR(
-                isotherm, 
-                output_dir=f'{inPath}DR/'
-            )
-        print(dub.volume)
     """
+    for testing
+    """
+    import glob
+    inPath = '../aif/'
     for file in glob.glob(f'{inPath}*.aif'):
         print(file)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             isotherm = pgp.isotherm_from_aif(file)
         dub = analyseDR(
-            isotherm, verbose=True,
+            isotherm, verbose=False,
             output_dir='../example_result/DR/',
         )
         if dub.has_valid_volumes:
-            print(dub.pore_volume_filtered)
+            print(dub.k)
+            print(dub.ans_potential, dub.characteristic_energy)
+            print(dub.opt_point_count)
         dub = analyseDA(
-            isotherm, verbose=True,
+            isotherm, verbose=False,
             output_dir='../example_result/DA/',
         )
         if dub.has_valid_volumes:
-            print(dub.pore_volume_filtered)
-    """
+            print(dub.k)
+            print(dub.ans_potential, dub.characteristic_energy)
+            print(dub.opt_point_count)

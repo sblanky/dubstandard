@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2.999993653083525: 
-Micropore volume: 1.357598679397893
-total points: 11.0
-r-squared: 0.9839327275215998
-potential: 7.908120972982144
-pressure range: 0.00094986-0.02074716
+No valid volumes found for EXP_ZIF-8powder with exponent of 2.999993653083525
+Try relaxing filter parameters or different exponent

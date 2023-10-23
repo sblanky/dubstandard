@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2: 
-Micropore volume: 1.4412166053428772
-total points: 12.0
-r-squared: 0.9831295488828102
-potential: 8.456142171475046
-pressure range: 0.00085822-0.01356059
+No valid volumes found for Mg-MOF-74 with exponent of 2
+Try relaxing filter parameters or different exponent

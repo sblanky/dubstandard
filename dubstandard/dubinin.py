@@ -17,7 +17,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from scipy.interpolate import PchipInterpolator
 from scipy.signal import argrelextrema
 from scipy import optimize, stats, constants
 import numpy as np
@@ -156,10 +155,7 @@ class DubininResult:
         self.ultrarouq_knee_idx = ultrarouq_knee_idx[
             ultrarouq_knee_idx < self.rouq_knee_idx
         ]
-
-
         self.rouq_expand = zero_matrix(num_points)
-
         self.rouq_linear = zero_matrix(num_points)
 
         def dr_fit(exp, ret=False):
@@ -231,8 +227,6 @@ class DubininResult:
                     self.p_val[i, j] = p_val
                     self.stderr[i, j] = stderr
 
-                    pore_filled_molar = np.exp(fit_intercept)
-
                     self.pore_volume[i, j] = np.exp(fit_intercept)
                     if not np.isfinite(self.pore_volume[i, j]):
                         self.pore_volume[i, j] = 0
@@ -265,7 +259,7 @@ class DubininFilteredResults:
         **kwargs,
     ):
         self.__dict__.update(dubinin_result.__dict__)
-        self.verbose=verbose
+        self.verbose = verbose
 
         filter_mask = np.ones_like(dubinin_result.point_count)
 
@@ -298,30 +292,24 @@ class DubininFilteredResults:
             self.valid_point_counts = self.point_count[self.valid_indices]
             self.valid_rsquared = self.fit_rsquared[self.valid_indices]
 
-            self._find_nearest_idx()
+            self._find_nearest_nonzero()
 
-            self.volume = self.pore_volume_filtered[self.k]
-            self.rsquared = self.fit_rsquared[self.k]
-            self.ans_potential = self.potentials[self.k]
-            self.opt_point_count = self.point_count[self.k]
+            self.volume = self.pore_volume_filtered[self.i, self.j]
+            self.rsquared = self.fit_rsquared[self.i, self.j]
+            self.ans_potential = self.potentials[self.i, self.j]
+            self.opt_point_count = self.point_count[self.i, self.j]
 
-    def _find_nearest_idx(self):
-        closest = np.argmin(
-            np.abs(self.valid_potentials - self.characteristic_energy)
-        )
-        self.k = self.valid_potentials.index(closest)
-        self.k = np.unravel_index(
-            np.argmin(
-                np.abs(self.valid_potentials - self.characteristic_energy),
-            ), self.valid_potentials.shape
-        )[0]
-        self.i = np.unravel_index(
-            self.
-        )
-        print(self.k)
-        #self.i = coords[0]
-        #self.j = coords[1]
+    def _find_nearest_nonzero(self):
+        nonzero_potential = self.potential_filtered[
+            np.nonzero(self.potential_filtered)
+        ]
+        diffs = np.abs(nonzero_potential - self.characteristic_energy)
+        coords = np.where(diffs==np.min(diffs))
 
+        val = nonzero_potential[coords]
+        i, j = np.where(self.potential_filtered==val)
+        self.i = i.item()
+        self.j = j.item()
 
     def export(self, filepath, verbose):
         filepath = Path(filepath)
@@ -434,24 +422,16 @@ if __name__ == "__main__":
     """
     import glob
     inPath = '../aif/'
-    for file in glob.glob(f'{inPath}*.aif'):
+    for file in [f for f in glob.glob(f'{inPath}*.aif')]:
         print(file)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             isotherm = pgp.isotherm_from_aif(file)
         dub = analyseDR(
-            isotherm, verbose=False,
+            isotherm, verbose=True,
             output_dir='../example_result/DR/',
         )
-        if dub.has_valid_volumes:
-            print(dub.k)
-            print(dub.ans_potential, dub.characteristic_energy)
-            print(dub.opt_point_count)
         dub = analyseDA(
-            isotherm, verbose=False,
+            isotherm, verbose=True,
             output_dir='../example_result/DA/',
         )
-        if dub.has_valid_volumes:
-            print(dub.k)
-            print(dub.ans_potential, dub.characteristic_energy)
-            print(dub.opt_point_count)

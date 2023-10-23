@@ -1,2 +1,5 @@
-No valid volumes found for Al_fumarate with exponent of 2
-Try relaxing filter parameters or different exponent
+Optimum Dubinin fit with exponent 2: 
+Micropore volume: 0.39882980223995995
+total points: 11.0
+r-squared: 0.9943537427233574
+potential: 7.8108010289575285

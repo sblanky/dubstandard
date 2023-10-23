@@ -1,6 +1,2 @@
-Optimum Dubinin fit with exponent 2.9999933312187808: 
-Micropore volume: 2.5157356714905132
-total points: 13.0
-r-squared: 0.9610899357051312
-potential: 3.781997638219119
-pressure range: 0.00041033-0.00399025
+No valid volumes found for MOF-5 with exponent of 2.9999933312187808
+Try relaxing filter parameters or different exponent

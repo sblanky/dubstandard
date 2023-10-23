@@ -3,3 +3,4 @@ Micropore volume: 1.3866104582105494
 total points: 11.0
 r-squared: 0.9931054637746565
 potential: 7.070853787908317
+pressure range: 0.00046013-0.00522907

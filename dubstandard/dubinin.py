@@ -54,7 +54,6 @@ class DubininResult:
     def __init__(
         self,
         isotherm,
-        clean=False,
         exp: float = None,
         **kwargs,
     ):
@@ -254,7 +253,6 @@ class DubininFilteredResults:
     def __init__(
         self,
         dubinin_result,
-        optimum_criteria: str = 'max_points',
         verbose=False,
         **kwargs,
     ):
@@ -292,14 +290,14 @@ class DubininFilteredResults:
             self.valid_point_counts = self.point_count[self.valid_indices]
             self.valid_rsquared = self.fit_rsquared[self.valid_indices]
 
-            self._find_nearest_nonzero()
+            self._find_coords_nonzero()
 
             self.volume = self.pore_volume_filtered[self.i, self.j]
             self.rsquared = self.fit_rsquared[self.i, self.j]
             self.ans_potential = self.potentials[self.i, self.j]
             self.opt_point_count = self.point_count[self.i, self.j]
 
-    def _find_nearest_nonzero(self):
+    def _find_coords_nonzero(self):
         nonzero_potential = self.potential_filtered[
             np.nonzero(self.potential_filtered)
         ]
@@ -327,13 +325,11 @@ class DubininFilteredResults:
                 print(f'total points: {self.opt_point_count}', file=fp)
                 print(f'r-squared: {self.rsquared}', file=fp)
                 print(f'potential: {self.ans_potential}', file=fp)
-                """
                 print(
                     f'pressure range: '
                     f'{self.pressure[self.i]}-{self.pressure[self.j]}',
                     file=fp
                 )
-                """
             else:
                 print(
                     f'No valid volumes found for {self.material} with '
@@ -364,7 +360,6 @@ class DubininFilteredResults:
 
 def analyseDA(
     isotherm,
-    optimum_criteria='max_points',
     material=None,
     exp=None,
     output_dir=None,
@@ -390,7 +385,6 @@ def analyseDA(
     )
     filtered = DubininFilteredResults(
         result,
-        optimum_criteria=optimum_criteria,
         verbose=verbose,
         **kwargs
     )
@@ -401,14 +395,12 @@ def analyseDA(
 
 def analyseDR(
     isotherm,
-    optimum_criteria='max_points',
     output_dir=None,
     verbose=False,
     **kwargs,
 ):
     return analyseDA(
         isotherm,
-        optimum_criteria=optimum_criteria,
         exp=2,
         output_dir=output_dir,
         verbose=verbose,

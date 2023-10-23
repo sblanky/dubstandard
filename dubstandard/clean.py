@@ -5,12 +5,22 @@ from pygaps import PointIsotherm
 
 
 def strictly_increasing(List):
+    """
+    Takes in a list, and deletes the values that are not strictly increasing.
+    Then returns modified list.
+    """
     increasing = [x < y for x, y in zip(List, List[1:])]
     increasing.append(increasing[-1])
     return increasing
 
 
-def increasing_pressure(isotherm):
+def increasing_pressure(
+    isotherm: PointIsotherm
+):
+    """
+    Takes in PointIsotherm, and removes decreasing pressures.
+    Pressure and loading are returned.
+    """
     increasing = strictly_increasing(isotherm.pressure())
     increasing_index = [
         i for i, x in enumerate(increasing) if x
@@ -25,13 +35,17 @@ def increasing_pressure(isotherm):
 
 
 def clean_isotherm(isotherm):
+    """
+    Applies cleaning function to isotherm.
+    Currently only ensures increasing.
+    """
     loading, pressure = increasing_pressure(isotherm)
     return loading, pressure
 
 
 if __name__ == "__main__":
-    inPath = '/home/pcxtsbl/CodeProjects/labcore_upload/robert/revise/aif/'
-    file = 'LAC2800.aif'
+    inPath = '../aif/'
+    file = 'Al_fumarate.aif'
     isotherm = pgp.isotherm_from_aif(f'{inPath}{file}')
     isotherm.convert()
     print(file)

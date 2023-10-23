@@ -32,7 +32,8 @@ import pygaps.characterisation as pgc
 from pygaps.graphing.calc_graphs import dra_plot
 from pygaps.utilities.exceptions import CalculationError
 
-from clean import clean_isotherm
+from dubstandard.clean import clean_isotherm
+import plot
 
 
 def log_p_exp(
@@ -244,7 +245,7 @@ class DubininResult:
                         continue
 
 
-class DubininFilteredResults:
+class DubininFilteredResult:
     r"""
     Apply filter to results from DubininResult.
     Filters can be changed using kwargs.
@@ -340,22 +341,11 @@ class DubininFilteredResults:
                 )
 
         if self.has_valid_volumes:
-            fig, ax = plt.subplots(1, 1)
-            dra_plot(
-                self.log_v, self.log_p_exp,
-                minimum=self.i, maximum=self.j,
-                slope=self.fit_grad[self.i, self.j],
-                intercept=self.fit_intercept[self.i, self.j],
-                exp=self.exp,
-                ax=ax,
-            )
-            plt.savefig(
+            fig, _ = plot.drafit(self, show=verbose)
+            fig.savefig(
                 filepath / 'optimum_plot.png',
                 bbox_inches='tight'
             )
-            if verbose:
-                plt.show()
-            plt.close()
 
 
 def analyseDA(
@@ -383,7 +373,7 @@ def analyseDA(
         exp=exp,
         **kwargs,
     )
-    filtered = DubininFilteredResults(
+    filtered = DubininFilteredResult(
         result,
         verbose=verbose,
         **kwargs

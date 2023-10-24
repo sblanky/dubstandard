@@ -340,12 +340,6 @@ class DubininFilteredResult:
                     file=fp
                 )
 
-        if self.has_valid_volumes:
-            fig, _ = plot.drafit(self, show=verbose)
-            fig.savefig(
-                filepath / 'optimum_plot.png',
-                bbox_inches='tight'
-            )
 
 
 def analyseDA(
@@ -379,8 +373,16 @@ def analyseDA(
         verbose=verbose,
         **kwargs
     )
+
+    if filtered.has_valid_volumes:
+        fig, _ = plot.drafit(filtered, show=verbose)
     if export:
         filtered.export(output_subdir, verbose=verbose)
+        if 'fig' in locals():
+            fig.savefig(
+                output_subdir / 'optimum_plot.png',
+                bbox_inches='tight'
+            )
 
     return filtered
 

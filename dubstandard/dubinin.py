@@ -341,7 +341,6 @@ class DubininFilteredResult:
                 )
 
 
-
 def analyseDA(
     isotherm,
     material=None,
@@ -375,7 +374,7 @@ def analyseDA(
     )
 
     if filtered.has_valid_volumes:
-        fig, _ = plot.drafit(filtered, show=verbose)
+        fig = plot.create_standard_plot(filtered, show=verbose)
     if export:
         filtered.export(output_subdir, verbose=verbose)
         if 'fig' in locals():
@@ -417,11 +416,8 @@ if __name__ == "__main__":
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             isotherm = pgp.isotherm_from_aif(file)
-        dub = analyseDR(
-            isotherm, verbose=True,
-            output_dir='../example_result/DR/',
-        )
         dub = analyseDA(
             isotherm, verbose=True,
+            export=False,
             output_dir='../example_result/DA/',
         )

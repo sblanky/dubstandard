@@ -354,6 +354,7 @@ def analyseDA(
     exp=None,
     output_dir=None,
     verbose=False,
+    export=True,
     **kwargs,
 ):
     if output_dir is None:
@@ -378,7 +379,8 @@ def analyseDA(
         verbose=verbose,
         **kwargs
     )
-    filtered.export(output_subdir, verbose=verbose)
+    if export:
+        filtered.export(output_subdir, verbose=verbose)
 
     return filtered
 
@@ -387,6 +389,7 @@ def analyseDR(
     isotherm,
     output_dir=None,
     verbose=False,
+    export=True,
     **kwargs,
 ):
     return analyseDA(
@@ -394,6 +397,7 @@ def analyseDR(
         exp=2,
         output_dir=output_dir,
         verbose=verbose,
+        export=export,
         **kwargs,
     )
 
@@ -403,6 +407,8 @@ if __name__ == "__main__":
     for testing
     """
     import glob
+    pg_logger = logging.getLogger('pygaps')
+    pg_logger.setLevel(logging.CRITICAL)
     inPath = '../aif/'
     for file in [f for f in glob.glob(f'{inPath}*.aif')]:
         print(file)

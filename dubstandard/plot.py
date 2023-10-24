@@ -3,6 +3,11 @@ import matplotlib.gridspec as gridspec
 
 import pygaps.graphing.calc_graphs as pgcc
 
+roqhandles = [
+    'all points',
+    'chosen points',
+    'characteristic'
+]
 
 def drafit(
     filteredresult,
@@ -42,9 +47,14 @@ def roqfit(
     pgcc.roq_plot(
         f.pressure, f.rouq_y,
         f.i, f.j,
-        f.pressure[f.rouq_knee_idx],
-        f.rouq_y[f.rouq_knee_idx],
+        f.characteristic_pressure,
+        f.rouq_y[f.characteristic_index],
         ax=ax,
+    )
+    ax.legend(
+        roqhandles,
+        frameon=False,
+        loc='best'
     )
 
     if show:
@@ -66,11 +76,20 @@ def expandroqfit(
     pgcc.roq_plot(
         f.pressure, f.ultrarouq_y,
         f.i, f.j,
-        f.pressure[f.ultrarouq_knee_idx],
-        f.ultrarouq_y[f.ultrarouq_knee_idx],
+        f.characteristic_pressure,
+        f.ultrarouq_y[f.characteristic_index],
         ax=ax,
     )
-    ax.semilogy()
+    ax.semilogx()
+    ax.set_title('Expanded Rouquerol')
+    ax.set_ylabel(r'$\Theta ln{p^0/p}$')
+    ax.set_xlabel(r'$p/p^0$')
+    ax.invert_xaxis()
+    ax.legend(
+        roqhandles,
+        frameon=False,
+        loc='best'
+    )
 
     if show:
         plt.show()
@@ -101,7 +120,7 @@ def create_standard_plot(
     ax = fig.add_subplot(gs[1, 1])
     drafit(f, ax=ax)
 
+    plt.tight_layout()
     if show:
         plt.show()
-
     return fig

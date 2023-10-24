@@ -17,7 +17,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from scipy.signal import argrelextrema
+from scipy.signal import argrelextrema, argrelmax
 from scipy import optimize, stats, constants
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,6 +35,7 @@ from pygaps.utilities.exceptions import CalculationError
 from dubstandard.clean import clean_isotherm
 import plot
 
+Vm = constants.value('molar volume of ideal gas (273.15 K, 101.325 kPa)')
 
 def log_p_exp(
     pressure,
@@ -98,6 +99,9 @@ class DubininResult:
             branch='ads',
             pressure_mode='relative',
         )
+        self.characteristic_index = (np.abs(
+            self.pressure-self.characteristic_pressure
+        )).argmin()
         self.characteristic_energy = (
             constants.gas_constant * self.iso_temp *
             np.log(1 / self.characteristic_pressure)
@@ -137,12 +141,11 @@ class DubininResult:
         self.rouq_knee_idx = np.argmax(np.diff(self.rouq_y) < 0)
 
         self.ultrarouq_y = (
-            np.log(self.loading) /
-            np.log(1 - self.pressure)
+            (self.loading / self.plateau_loading) *
+            np.log(1/self.pressure)
         )
-        ultrarouq_knee_idx = argrelextrema(
+        ultrarouq_knee_idx = argrelmax(
             self.ultrarouq_y,
-            np.less
         )[0]
         if len(ultrarouq_knee_idx) > 1:
             ultrarouq_knee_idx = ultrarouq_knee_idx[-1]
@@ -420,4 +423,7 @@ if __name__ == "__main__":
             isotherm, verbose=True,
             export=False,
             output_dir='../example_result/DA/',
+            **{
+                'min_r2': 0.9
+            }
         )
